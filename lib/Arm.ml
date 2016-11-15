@@ -119,14 +119,18 @@ let sub ?(cond : cond option) (dst : reg) (src1 : operand) (src2 : operand) : as
 
 let rec mul ?(cond : cond option) (dst : reg) (src1 : operand) (src2 : operand) : assembly = match (src1, src2) with
   | (Imm x, Imm y) -> instr Mov cond dst (Op (Imm (x * y))) None
-  | (Reg _, Reg _) -> instr Mul cond dst (Op src1) (Some src2)
+  | (Reg _, Reg m) -> 
+    if dst = m then
+      instr Mul cond dst (Op src2) (Some src1)
+    else
+      instr Mul cond dst (Op src1) (Some src2)
   | (Reg r, Imm _) -> mul ?cond dst src2 src1
   | (Imm _, Reg r) ->
     if r = dst then
       failwith "the source register and the destination register for mul must be different when calling with an Imm"
     else
       seq (instr Mov cond dst (Op (src1)) None)
-        (instr Mul cond dst (Op src2) (Some (Reg dst)))
+        (instr Mul cond dst (Op (Reg dst)) (Some src2))
 
 let cmp ?(cond : cond option) (src1 : operand) (src2 : operand) : assembly = match (src1, src2) with
   | (Imm x, Imm y) ->
